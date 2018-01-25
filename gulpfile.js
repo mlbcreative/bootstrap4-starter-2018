@@ -2,16 +2,16 @@ var path = './';
 var gulp = require('gulp'),
 browserSync = require('browser-sync').create(),
 sass = require('gulp-sass'),
-concat = require('gulp-concat'),
 uglify = require('gulp-uglify'),
+minifyCss = require('gulp-clean-css'),
+useref = require('gulp-useref'),
 imagemin = require('gulp-imagemin'),
 sourcemaps = require('gulp-sourcemaps'),
 postcss = require('gulp-postcss'),
 autoprefixer = require('autoprefixer'),
 gulpif = require('gulp-if'),
 htmlPartial = require('gulp-html-partial'),
-del = require('del'),
-reload = browserSync.reload;
+del = require('del');
 
 var paths = {
     
@@ -25,6 +25,7 @@ var paths = {
     ]
 };
 
+//DEV TASKS
 function scripts() {
     return gulp.src(paths.scripts)
     .pipe(sourcemaps.init())
@@ -61,17 +62,21 @@ function html() {
 }
 
 // Static Server + watching scss/html files
-function browsersync() {
+function serve() {
     browserSync.init({
         server: path + "src"
-    })
+    });
+    
+    gulp.watch(path + "src/scss/**", styles);
+    gulp.watch(path + "src/js/*.js", scripts);
+    gulp.watch([path + "src/pages/*.html", path + "src/partials/*.html"], gulp.series(html, reload));
 }
 
-function watch(){
-    gulp.watch("src/scss/**", sass);
-    gulp.watch("src/js/*.js", scripts);
-    gulp.watch(["src/**/*.html"], html).on('change', reload);
+function reload(done) {
+  browserSync.reload();
+  done();
 }
+
 
 function cleanDev() {
     return del(path + 'src/*.html');
@@ -80,10 +85,50 @@ function cleanDev() {
 exports.cleanDev = cleanDev;
 exports.scripts = scripts;
 exports.styles = styles;
-exports.watch = watch;
-exports.browsersync = browsersync;
+exports.serve = serve;
 exports.html = html;
 
-var build = gulp.series(cleanDev, gulp.parallel(scripts, styles), html, browsersync, watch);
+var dev = gulp.series(cleanDev, gulp.parallel(scripts, styles), html, serve);
 
-gulp.task('default', build);
+gulp.task('default', dev);
+//.END DEV TASKS
+
+
+//PRODUCTION TASKS
+
+
+function cleanProd(){
+    return del( path + "dist" );
+}
+
+function imageMinify() {
+    return gulp.src( path + 'src/img/**')
+    .pipe(imagemin())
+    .pipe(gulp.dest( path + 'dist/img'));
+}
+
+function cssMinify() {
+    return gulp.src( path + 'src/css/*.css')
+    .pipe(sourcemaps.init())
+    .pipe(minifyCss())
+    .pipe(sourcemaps.write())
+    .pipe(gulp.dest( path + 'dist/css'));
+}
+
+function htmlProd(){
+    return gulp.src( path + 'src/*.html')
+        .pipe(useref())
+        .pipe(gulp.dest(path + 'dist'));
+}
+
+function serveProd() {
+    browserSync.init({
+        server: path + "dist"
+    });
+}
+
+var build = gulp.series(cleanProd, gulp.parallel(imageMinify, cssMinify),htmlProd);
+var serveBuild = gulp.series(cleanProd, gulp.parallel(imageMinify, cssMinify),htmlProd, serveProd);
+
+gulp.task("build:prod", build);
+gulp.task("serve:prod", serveBuild);
