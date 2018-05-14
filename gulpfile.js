@@ -18,7 +18,8 @@ var paths = {
     scripts : [
         path + "node_modules/jquery/dist/jquery.js",
         path + "node_modules/popper.js/dist/umd/popper.js",
-        path + "node_modules/bootstrap/dist/js/bootstrap.js"
+        path + "node_modules/bootstrap/dist/js/bootstrap.js",
+        path + "node_modules/waypoints/lib/noframework.waypoints.js"
     ],
     styles : [
         path + "src/scss/*.scss"
@@ -26,12 +27,19 @@ var paths = {
 };
 
 //DEV TASKS
-function scripts() {
+function vendorscripts() {
     return gulp.src(paths.scripts)
     .pipe(sourcemaps.init())
     .pipe(sourcemaps.write())
-    .pipe(gulp.dest(path + 'src/js/vendors'));
+    .pipe(gulp.dest(path + 'build/js/vendors'));
 };
+
+function myscripts() {
+     return gulp.src(path + 'src/js/*.js')
+    .pipe(sourcemaps.init())
+    .pipe(sourcemaps.write())
+    .pipe(gulp.dest(path + 'build/js'));
+}
 
 function styles() {
     var config = {
@@ -49,7 +57,7 @@ function styles() {
 	.pipe(sourcemaps.init())
     .pipe(postcss([ autoprefixer() ]))
     .pipe(sourcemaps.write('.'))
-	.pipe(gulp.dest(path + 'src/css'))
+	.pipe(gulp.dest(path + 'build/css'))
 	.pipe(browserSync.stream());
 };
 
@@ -58,18 +66,28 @@ function html() {
         .pipe(htmlPartial({
             basePath: path + 'src/partials/'
         }))
-        .pipe(gulp.dest(path + 'src'))
+        .pipe(gulp.dest(path + 'build'))
+}
+
+function images() {
+    return gulp.src(path + 'src/img/**')
+    .pipe(gulp.dest(path + 'build/img'));
+}
+
+function fonts() {
+    return gulp.src(path + 'src/fontawesome/webfonts/**')
+    .pipe(gulp.dest(path + 'build/fontawesome/webfonts'))
 }
 
 // Static Server + watching scss/html files
 function serve() {
     browserSync.init({
-        server: path + "src"
+        server: path + "build"
     });
     
     gulp.watch(path + "src/scss/**", styles);
-    gulp.watch(path + "src/js/*.js", scripts);
-    gulp.watch([path + "src/pages/*.html", path + "src/partials/*.html"], gulp.series(html, reload));
+    gulp.watch(path + "src/js/*.js", gulp.series(myscripts,reload));
+    gulp.watch([path + "src/pages/*.html", path + "src/partials/**"], gulp.series(html, reload));
 }
 
 function reload(done) {
@@ -79,16 +97,19 @@ function reload(done) {
 
 
 function cleanDev() {
-    return del(path + 'src/*.html');
+    return del(path + 'build/**');
 }
 
 exports.cleanDev = cleanDev;
-exports.scripts = scripts;
+exports.vendorscripts = vendorscripts;
+exports.myscripts = myscripts;
 exports.styles = styles;
+exports.images = images;
+exports.fonts = fonts;
 exports.serve = serve;
 exports.html = html;
 
-var dev = gulp.series(cleanDev, gulp.parallel(scripts, styles), html, serve);
+var dev = gulp.series(cleanDev, gulp.parallel(vendorscripts, myscripts, styles, images),fonts, html, serve);
 
 gulp.task('default', dev);
 //.END DEV TASKS
@@ -108,7 +129,7 @@ function imageMinify() {
 }
 
 function cssMinify() {
-    return gulp.src( path + 'src/css/*.css')
+    return gulp.src( path + 'build/css/*.css')
     .pipe(sourcemaps.init())
     .pipe(minifyCss())
     .pipe(sourcemaps.write())
@@ -116,7 +137,7 @@ function cssMinify() {
 }
 
 function htmlProd(){
-    return gulp.src( path + 'src/*.html')
+    return gulp.src( path + 'build/*.html')
         .pipe(useref())
         .pipe(gulp.dest(path + 'dist'));
 }

@@ -4,7 +4,7 @@
   "description": "Slimmer more effecient Bootstrap 4 starter kit",
   "main": "index.html",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "gulp"
   },
   "repository": {
     "type": "git",
@@ -41,7 +41,8 @@
     "install": "^0.10.4",
     "jquery": "^3.3.1",
     "npm": "^5.6.0",
-    "popper.js": "^1.13.0"
+    "popper.js": "^1.13.0",
+    "waypoints": "^4.0.1"
   },
   "dependencies": {}
 }
